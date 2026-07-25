@@ -1,0 +1,3 @@
+- [i-FRAMER schema gotchas](iframer-schema.md) — external Frame Visualiser MySQL DB: GUID keys, country code can't join to country table, naming traps (Slug/SendSmsFrom/CountryName), item subtype IDs.
+- [AI assistant live schema](ai-live-schema.md) — AI SQL assistant injects live INFORMATION_SCHEMA (cached) into prompt; keep curated business rules separate from raw schema.
+- [SQL tenant isolation](sql-tenant-isolation.md) — never scope framer data via placeholder string-matching in user-submitted SQL; build server-side with bound FramerID param (see scope() in framerDashboard.ts).
