@@ -61,9 +61,112 @@ export async function setupCustomAuth(app: Express) {
   );
 }
 
+const SSO_MAX_AGE_SECONDS = 300; // links valid for 5 minutes
+
+// One-time use: remember consumed SSO signatures until they expire so a link cannot be replayed
+const usedSsoLinks = new Map<string, number>(); // sig -> expiry epoch ms
+
+function pruneUsedSsoLinks() {
+  const now = Date.now();
+  usedSsoLinks.forEach((exp, key) => {
+    if (exp < now) usedSsoLinks.delete(key);
+  });
+}
+
+function verifySsoSignature(framerId: string, ts: string, sig: string): boolean {
+  const secret = process.env.PORTAL_SSO_SECRET;
+  if (!secret) return false;
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${framerId}.${ts}`)
+    .digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sig, "hex"));
+  } catch {
+    return false;
+  }
+}
+
 export function registerCustomAuthRoutes(app: Express) {
   // Clean expired tokens periodically
   setInterval(cleanExpiredTokens, 60000);
+
+  // Single sign-on from the i-framer portal.
+  // The portal links to: /api/auth/sso?framerId=<ID>&ts=<unix seconds>&sig=<HMAC-SHA256 hex of "<framerId>.<ts>" using PORTAL_SSO_SECRET>
+  app.get("/api/auth/sso", async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store");
+    const fail = (status: number) =>
+      res
+        .status(status)
+        .send("Sign-in link is invalid or has expired. Please go back to the portal and click the reports link again.");
+    try {
+      if (!process.env.PORTAL_SSO_SECRET) {
+        return res.status(503).send("Portal sign-in is not configured on this server.");
+      }
+
+      const framerId = String(req.query.framerId || "");
+      const ts = String(req.query.ts || "");
+      const sig = String(req.query.sig || "");
+      if (!framerId || !ts || !sig) {
+        return fail(400);
+      }
+
+      const tsNum = Number(ts);
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      if (!Number.isFinite(tsNum) || Math.abs(nowSeconds - tsNum) > SSO_MAX_AGE_SECONDS) {
+        return fail(401);
+      }
+
+      if (!verifySsoSignature(framerId, ts, sig)) {
+        return fail(401);
+      }
+
+      // One-time use: reject a signature that has already been consumed
+      pruneUsedSsoLinks();
+      if (usedSsoLinks.has(sig)) {
+        return fail(401);
+      }
+      usedSsoLinks.set(sig, Date.now() + (SSO_MAX_AGE_SECONDS + 60) * 1000);
+
+      const dataSources = await storage.getDataSources();
+      const dataSource = dataSources[0];
+      if (!dataSource) {
+        return res.status(500).send("Sign-in failed. Please try again.");
+      }
+
+      const result = await executeMySQLWithParams(
+        dataSource.config,
+        `SELECT ID, Name FROM framer WHERE ID = ? AND Deleted = 0 LIMIT 1`,
+        [framerId]
+      );
+      if (!result.rows || result.rows.length === 0) {
+        return fail(401);
+      }
+
+      const framer = result.rows[0] as { ID: string; Name: string };
+
+      // Prevent session fixation: start a fresh session for this sign-in
+      req.session.regenerate((regenErr) => {
+        if (regenErr) {
+          console.error("SSO session regenerate error:", regenErr);
+          return res.status(500).send("Sign-in failed. Please try again.");
+        }
+        req.session.framerId = framer.ID;
+        req.session.framerName = framer.Name || "Unknown Framer";
+        req.session.isAdmin = false;
+        req.session.save((err) => {
+          if (err) {
+            console.error("SSO session save error:", err);
+            return res.status(500).send("Sign-in failed. Please try again.");
+          }
+          res.redirect("/");
+        });
+      });
+    } catch (error: any) {
+      console.error("SSO error:", error);
+      res.status(500).send("Sign-in failed. Please try again.");
+    }
+  });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
