@@ -1,4 +1,3 @@
-import './env';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -49,7 +48,8 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      // Auth responses may contain session identities or bearer tokens.
+      if (capturedJsonResponse && !path.startsWith("/api/auth/")) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 

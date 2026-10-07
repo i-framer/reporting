@@ -10,7 +10,6 @@ DataDeck is a MySQL reporting and visualization application that allows users to
 - Dashboard builder with support for tables, bar charts, and line charts
 - AI assistant that can translate natural language to SQL and execute queries
 - Custom Framer ID authentication with two access levels (framer-specific and admin)
-- Cut List Optimizer with 2D sheet cutting and 1D linear cutting modes, imperial/metric support
 
 ## User Preferences
 
@@ -53,6 +52,9 @@ Preferred communication style: Simple, everyday language.
 - **Administration login:** Full access to all data without FramerID filtering.
 Session management via express-session with PostgreSQL session store (connect-pg-simple).
 Server-side enforcement blocks non-admin queries on framer-specific tables that don't include the user's FramerID.
+
+Operational portal SSO details and the incident handoff checklist are in
+[docs/portal-sso-handoff.md](docs/portal-sso-handoff.md).
 
 **AI Integration:** OpenAI API (via Replit AI Integrations) for the natural language SQL assistant. The AI can generate SQL queries from plain English and execute them against connected MySQL databases.
 

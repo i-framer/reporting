@@ -9,8 +9,13 @@ import type { SavedQuery } from "@shared/schema";
 import { ResultsTable } from "@/components/ResultsTable";
 import { buildCsv } from "@/lib/csv";
 import { getAuthToken, useAuth } from "@/hooks/use-auth";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+
+type QueryResults = {
+  columns: string[];
+  rows: Record<string, unknown>[];
+};
 
 function authHeaders(): HeadersInit {
   const headers: HeadersInit = {};
@@ -37,7 +42,7 @@ export default function QueryReport() {
     }
   });
 
-  const { data: results, isLoading: loadingResults, error } = useQuery({
+  const { data: results, isLoading: loadingResults, error } = useQuery<QueryResults>({
     queryKey: ["query-results", queryId],
     queryFn: async () => {
       if (!savedQuery) return null;
@@ -85,7 +90,7 @@ export default function QueryReport() {
   const summaryStats = calculateSummaryStats(columns, rows);
 
   function downloadCSV() {
-    if (columns.length === 0) return;
+    if (!savedQuery || columns.length === 0) return;
 
     const csvContent = buildCsv(columns, rows);
 
@@ -98,7 +103,7 @@ export default function QueryReport() {
   }
 
   function downloadPDF() {
-    if (columns.length === 0) return;
+    if (!savedQuery || columns.length === 0) return;
     
     const doc = new jsPDF();
     
@@ -124,7 +129,7 @@ export default function QueryReport() {
     autoTable(doc, {
       startY: yPos,
       head: [columns],
-      body: rows.map(row => columns.map(col => String(row[col] ?? ""))),
+      body: rows.map((row) => columns.map((col) => String(row[col] ?? ""))),
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [66, 66, 66] },
     });

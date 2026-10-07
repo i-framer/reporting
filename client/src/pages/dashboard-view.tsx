@@ -498,7 +498,7 @@ function ReportWidget({ report, query }: { report: Report; query?: SavedQuery })
       const countKey = columns[3]; // renewals (count)
       const amountKey = columns.length > 4 ? columns[4] : null; // total_amount
       
-      const categories = Array.from(new Set(rows.map((r: any) => String(r[categoryKey]))));
+      const categories: string[] = Array.from(new Set(rows.map((r: any) => String(r[categoryKey]))));
       const colors = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
       
       // Group by label - store both count and amount per category

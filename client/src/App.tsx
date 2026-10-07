@@ -14,7 +14,6 @@ import QueryReport from "@/pages/query-report";
 import Sources from "@/pages/sources";
 import AIAssistant from "@/pages/ai-assistant";
 import { ShieldAlert } from "lucide-react";
-import CutListOptimizer from "@/pages/cut-list-optimizer";
 import CuttingListReport from "@/pages/cutting-list-report";
 import JobListReport from "@/pages/job-list-report";
 import FramerDashboard from "@/pages/framer-dashboard";
@@ -50,7 +49,6 @@ function AuthenticatedApp() {
           <Route path="/query/:id" component={QueryReport} />
           <Route path="/sources" component={isAdmin ? Sources : RestrictedAccess} />
           <Route path="/ai-assistant" component={isAdmin ? AIAssistant : RestrictedAccess} />
-          <Route path="/cut-list-optimizer" component={CutListOptimizer} />
           <Route path="/reports/cutting-list" component={CuttingListReport} />
           <Route path="/reports/job-list" component={JobListReport} />
           <Route path="/framer-dashboard" component={FramerDashboard} />

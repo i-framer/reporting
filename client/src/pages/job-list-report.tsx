@@ -133,6 +133,18 @@ export default function JobListReport() {
 
   const resultRows = data?.rows || [];
   const resultCols = data?.columns || [];
+  const amountColumns = ["SubTotal", "Tax", "Total"].filter((col) =>
+    (resultCols as string[]).includes(col)
+  );
+  const amountTotals = Object.fromEntries(
+    amountColumns.map((col) => [
+      col,
+      (resultRows as Record<string, any>[]).reduce((sum, row) => {
+        const value = Number(row[col]);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0),
+    ])
+  );
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
@@ -396,6 +408,24 @@ export default function JobListReport() {
                     </tr>
                   ))}
                 </tbody>
+                {amountColumns.length > 0 && (
+                  <tfoot className="sticky bottom-0 bg-muted font-semibold">
+                    <tr className="border-t-2">
+                      {(resultCols as string[]).map((col: string, idx: number) => (
+                        <td key={col} className="px-3 py-2 whitespace-nowrap">
+                          {idx === 0
+                            ? "Totals"
+                            : amountColumns.includes(col)
+                              ? amountTotals[col].toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
+                              : ""}
+                        </td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </CardContent>

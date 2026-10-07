@@ -8,7 +8,6 @@ import {
   Bot,
   Shield,
   Building,
-  Scissors,
   Gauge,
   FileBarChart
 } from "lucide-react";
@@ -30,13 +29,11 @@ export function Sidebar() {
   const links = isAdmin
     ? [
         { href: "/ai-assistant", label: "AI Assistant", icon: Bot },
-        { href: "/cut-list-optimizer", label: "Cut List Optimizer", icon: Scissors },
         { href: "/queries", label: "Query Editor", icon: Terminal },
         { href: "/sources", label: "Data Sources", icon: Database },
       ]
     : [
         { href: "/reports", label: "Reports", icon: FileBarChart },
-        { href: "/cut-list-optimizer", label: "Cut List Optimizer", icon: Scissors },
       ];
 
   return (
