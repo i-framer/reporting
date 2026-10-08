@@ -1,0 +1,163 @@
+{
+  "formatVersion": 1,
+  "dataSourceName": "Frame Visualiser MySQL",
+  "queries": [
+    {
+      "name": "Framer Current Subscriptions",
+      "description": "All framers with their current subscription plan",
+      "sql": "SELECT \n    f.Name AS framer_name,\n    p.Name AS plan_type,\n    p.MonthlyCharge AS monthly_charge,\n    f.DateRegistered AS registered_date,\n    f.LastAccessed AS last_accessed\nFROM framer f\nLEFT JOIN plan p ON f.PlanID = p.ID\nWHERE f.Deleted = 0\nORDER BY p.Name, f.Name"
+    },
+    {
+      "name": "Framer Sales Summary",
+      "description": "Shows framer name, total jobs, and sales totals",
+      "sql": "SELECT \n    f.Name AS framer_name,\n    COUNT(DISTINCT j.ID) AS total_jobs,\n    COUNT(DISTINCT s.ID) AS total_sales,\n    COALESCE(SUM(s.SaleTotal), 0) AS sales_total\nFROM framer f\nLEFT JOIN sale s ON f.ID = s.FramerID AND s.Deleted = 0 \n    AND s.Created >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)\nLEFT JOIN job j ON s.ID = j.SaleID AND j.Deleted = 0\nWHERE f.Deleted = 0\nGROUP BY f.ID, f.Name\nORDER BY sales_total DESC"
+    },
+    {
+      "name": "Framer Statistics",
+      "description": "Detailed framer information with subscription, customers, sales and contact details",
+      "sql": "SELECT \n    f.ID AS framer_id,\n    f.Name AS framer_name,\n    f.DateRegistered AS start_date,\n    p.Name AS subscription_plan,\n    p.MonthlyCharge AS subscription_amount,\n    (SELECT COUNT(*) FROM customer c WHERE c.FramerID = f.ID) AS total_customers,\n    (SELECT COUNT(*) FROM sale s WHERE s.FramerID = f.ID AND s.Deleted = 0) AS total_sales,\n    (SELECT COALESCE(SUM(s.SaleTotal), 0) FROM sale s WHERE s.FramerID = f.ID AND s.Deleted = 0) AS sales_total\nFROM framer f\nLEFT JOIN plan p ON f.PlanID = p.ID\nWHERE f.Deleted = 0\nORDER BY f.Name"
+    },
+    {
+      "name": "Framers ID",
+      "description": "",
+      "sql": "SELECT\n    f.ID AS FramerID,\n    f.Name AS FramerName\nFROM\n    framer f\nWHERE\n    f.Deleted = 0;"
+    },
+    {
+      "name": "Framers SenderID and email",
+      "description": "Framers SenderID and email Grouped by country",
+      "sql": "SELECT \n    f.Name AS FramerName,\n    f.Slug AS FramerSlug,\n    f.SendSmsFrom AS SmsSenderID,\n    f.SendEmailFrom AS Email,\n    f.CountryCode AS CountryISO\nFROM \n    framer f\nWHERE \n    f.Deleted = 0\nORDER BY \n    f.CountryCode, f.Name;"
+    },
+    {
+      "name": "Inactive Framers (3+ Years)",
+      "description": "Framers with no sales in the last 3 years",
+      "sql": "SELECT \n    f.Name AS framer_name,\n    MAX(s.Created) AS last_sale_date,\n    DATEDIFF(CURDATE(), MAX(s.Created)) AS days_since_last_sale\nFROM framer f\nLEFT JOIN sale s ON f.ID = s.FramerID AND s.Deleted = 0\nWHERE f.Deleted = 0\nGROUP BY f.ID, f.Name\nHAVING MAX(s.Created) IS NULL \n   OR MAX(s.Created) < DATE_SUB(CURDATE(), INTERVAL 3 YEAR)\nORDER BY last_sale_date ASC"
+    },
+    {
+      "name": "Inactive users 3+years",
+      "description": "inactive users",
+      "sql": "SELECT \n    f.Name AS framer_name,\n    MAX(s.Created) AS last_sale_date,\n    DATEDIFF(CURDATE(), MAX(s.Created)) AS days_since_last_sale\nFROM framer f\nLEFT JOIN sale s ON f.ID = s.FramerID AND s.Deleted = 0\nWHERE f.Deleted = 0\nGROUP BY f.ID, f.Name\nHAVING MAX(s.Created) IS NULL \n   OR MAX(s.Created) < DATE_SUB(CURDATE(), INTERVAL 3 YEAR)\nORDER BY last_sale_date ASC"
+    },
+    {
+      "name": "Top 10 Backings",
+      "description": "Most frequently used backing items",
+      "sql": "SELECT \n    i.Name AS item_name,\n    i.Code AS item_code,\n    COUNT(*) AS usage_count\nFROM saleline sl\nJOIN item i ON sl.ItemID = i.ID\nJOIN backing b ON i.ID = b.ID\nWHERE sl.Deleted = 0 AND i.Deleted = 0\nGROUP BY i.ID, i.Name, i.Code\nORDER BY usage_count DESC\nLIMIT 10"
+    },
+    {
+      "name": "Top 10 Coverings",
+      "description": "Most frequently used covering items",
+      "sql": "SELECT \n    i.Name AS item_name,\n    i.Code AS item_code,\n    COUNT(*) AS usage_count\nFROM saleline sl\nJOIN item i ON sl.ItemID = i.ID\nJOIN covering c ON i.ID = c.ID\nWHERE sl.Deleted = 0 AND i.Deleted = 0\nGROUP BY i.ID, i.Name, i.Code\nORDER BY usage_count DESC\nLIMIT 10"
+    },
+    {
+      "name": "Top 10 Matboards",
+      "description": "Most frequently used matboard items",
+      "sql": "SELECT \n    i.Name AS item_name,\n    i.Code AS item_code,\n    COUNT(*) AS usage_count\nFROM saleline sl\nJOIN item i ON sl.ItemID = i.ID\nJOIN matboard mb ON i.ID = mb.ID\nWHERE sl.Deleted = 0 AND i.Deleted = 0\nGROUP BY i.ID, i.Name, i.Code\nORDER BY usage_count DESC\nLIMIT 10"
+    },
+    {
+      "name": "Top 10 Miscellaneous",
+      "description": "Most frequently used miscellaneous items",
+      "sql": "SELECT \n    i.Name AS item_name,\n    i.Code AS item_code,\n    COUNT(*) AS usage_count\nFROM saleline sl\nJOIN item i ON sl.ItemID = i.ID\nJOIN miscellaneous mi ON i.ID = mi.ID\nWHERE sl.Deleted = 0 AND i.Deleted = 0\nGROUP BY i.ID, i.Name, i.Code\nORDER BY usage_count DESC\nLIMIT 10"
+    },
+    {
+      "name": "Top 10 Mouldings",
+      "description": "Most frequently used moulding items",
+      "sql": "SELECT \n    i.Name AS item_name,\n    i.Code AS item_code,\n    COUNT(*) AS usage_count\nFROM saleline sl\nJOIN item i ON sl.ItemID = i.ID\nJOIN moulding m ON i.ID = m.ID\nWHERE sl.Deleted = 0 AND i.Deleted = 0\nGROUP BY i.ID, i.Name, i.Code\nORDER BY usage_count DESC\nLIMIT 10"
+    },
+    {
+      "name": "Weekly Subscription Payments",
+      "description": "Subscription payments by week and plan type over the last year",
+      "sql": "SELECT \n    YEARWEEK(r.CommencementDate, 1) AS week_number,\n    DATE_FORMAT(MIN(r.CommencementDate), '%Y-%m-%d') AS week_start,\n    p.Name AS plan_type,\n    COUNT(*) AS renewals,\n    COALESCE(p.MonthlyCharge, 0) * COUNT(*) AS total_amount\nFROM renewal r\nJOIN plan p ON r.PlanID = p.ID\nWHERE r.CommencementDate >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)\n    AND p.Deleted = 0\nGROUP BY YEARWEEK(r.CommencementDate, 1), p.Name, p.MonthlyCharge\nORDER BY week_number DESC, p.Name"
+    }
+  ],
+  "dashboards": [
+    {
+      "name": "Framer Sales",
+      "description": "[admin] Performance metrics for all framers",
+      "widgets": [
+        {
+          "title": "Framer Sales Summary",
+          "queryName": "Framer Sales Summary",
+          "type": "table",
+          "config": {},
+          "layout": {
+            "h": 6,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Framers  SenderID",
+      "description": "[admin] lokup SMS SenderID to make sure they are listed with MessageMedia",
+      "widgets": [
+        {
+          "title": "Framers SenderID",
+          "queryName": "Framers SenderID and email",
+          "type": "table",
+          "config": {},
+          "layout": {
+            "h": 4,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inactive users",
+      "description": "[admin] ",
+      "widgets": [
+        {
+          "title": "inactive 3y",
+          "queryName": "Inactive Framers (3+ Years)",
+          "type": "table",
+          "config": {},
+          "layout": {
+            "h": 4,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales Overview",
+      "description": "Key metrics for sales and user growth",
+      "widgets": [
+        {
+          "title": "Wekly subscription payments",
+          "queryName": "Weekly Subscription Payments",
+          "type": "bar",
+          "config": {},
+          "layout": {
+            "h": 4,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "framer statistics",
+      "description": "[admin] Show key information on framers",
+      "widgets": [
+        {
+          "title": "Framer Stats",
+          "queryName": "Framer Statistics",
+          "type": "table",
+          "config": {},
+          "layout": {
+            "h": 4,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    }
+  ]
+}
